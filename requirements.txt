@@ -1,0 +1,33 @@
+# Google ADK & LLM
+google-adk
+google-genai
+
+# Browser Automation
+browser-use
+playwright
+
+# Backend
+fastapi
+uvicorn[standard]
+
+# Frontend
+streamlit
+
+# Database
+sqlalchemy
+aiosqlite
+
+# Config & Validation
+pydantic
+pydantic-settings
+
+# Search
+google-search-results
+tavily-python
+
+# Map & HTTP
+folium
+httpx
+
+# Utilities
+python-dotenv
