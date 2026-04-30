@@ -69,7 +69,7 @@ def render_place_card(place: dict, key_prefix: str = "") -> None:
     if info_parts:
         st.markdown(" · ".join(info_parts))
 
-    # Restrictions
+    # Restrictions (None 값은 스킵)
     restrictions = place.get("restrictions")
     if restrictions and isinstance(restrictions, dict):
         restriction_items = []
@@ -80,24 +80,22 @@ def render_place_card(place: dict, key_prefix: str = "") -> None:
         if restrictions.get("group_size"):
             restriction_items.append(f"👥 인원: {restrictions['group_size']}")
         for k, v in restrictions.items():
-            if k not in ("age", "dress_code", "group_size"):
-                restriction_items.append(f"⚠️ {k}: {v}")
+            if k in ("age", "dress_code", "group_size"):
+                continue
+            if v in (None, "", "null", "None"):
+                continue
+            restriction_items.append(f"⚠️ {k}: {v}")
         if restriction_items:
             st.markdown(" · ".join(restriction_items))
 
-    # Confidence score + rating
-    col1, col2 = st.columns(2)
-    with col1:
-        confidence = place.get("confidence_score", 0.5)
-        st.markdown(f"**신뢰도:** {_stars(confidence)} ({confidence:.1%})")
-    with col2:
-        rating = place.get("rating")
-        review_count = place.get("review_count")
-        if rating is not None:
-            rating_text = f"**평점:** {'⭐' * round(rating)} {rating:.1f}"
-            if review_count:
-                rating_text += f" ({review_count:,}개 리뷰)"
-            st.markdown(rating_text)
+    # Rating
+    rating = place.get("rating")
+    review_count = place.get("review_count")
+    if rating is not None:
+        rating_text = f"**평점:** {'⭐' * round(rating)} {rating:.1f}"
+        if review_count:
+            rating_text += f" ({review_count:,}개 리뷰)"
+        st.markdown(rating_text)
 
     # Price level
     if place.get("price_level"):

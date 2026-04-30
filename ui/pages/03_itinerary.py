@@ -16,6 +16,11 @@ API_BASE = "http://localhost:8000/api"
 st.set_page_config(page_title="Itinerary - Travel Planner", page_icon="📅", layout="wide")
 st.title("📅 여행 일정")
 
+# Allow deep-linking via ?trip_id=... query param
+_qp_trip_id = st.query_params.get("trip_id")
+if _qp_trip_id:
+    st.session_state.trip_id = _qp_trip_id
+
 # Redirect if no trip
 if "trip_id" not in st.session_state or not st.session_state.trip_id:
     st.warning("먼저 채팅에서 여행 계획을 입력해주세요.")
@@ -66,6 +71,7 @@ places = fetch_places(trip_id)
 
 trip = data.get("trip", {}) if data else {}
 days = data.get("days", {}) if data else {}
+final_response = trip.get("final_response")
 
 if not days and not places:
     st.info("아직 생성된 일정이 없습니다.")
@@ -77,6 +83,19 @@ with st.sidebar:
     st.write(f"**도시:** {trip.get('city', '-')}")
     st.write(f"**기간:** {trip.get('start_date', '-')} ~ {trip.get('end_date', '-')}")
     st.markdown("---")
+
+# AI-generated summary at the top (collapsible)
+if final_response:
+    with st.expander("📝 AI 추천 요약 (전체 일정 보기)", expanded=True):
+        st.markdown(final_response)
+        st.download_button(
+            label="💾 마크다운으로 저장",
+            data=final_response,
+            file_name=f"itinerary_{trip.get('city', 'trip')}_{trip.get('start_date', '')}.md",
+            mime="text/markdown",
+        )
+    st.markdown("---")
+    st.subheader("📅 상세 일정")
 
 if days:
     # Day tabs

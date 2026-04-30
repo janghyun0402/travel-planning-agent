@@ -49,7 +49,7 @@ async def search_place(place_name: str, city: str) -> dict:
                 PLACE_DETAILS_URL,
                 params={
                     "place_id": place_id,
-                    "fields": "name,formatted_address,formatted_phone_number,website,url,rating,user_ratings_total,price_level,opening_hours,types,business_status,reservable",
+                    "fields": "name,formatted_address,formatted_phone_number,website,url,rating,user_ratings_total,price_level,opening_hours,types,business_status,reservable,geometry",
                     "key": settings.google_maps_api_key,
                     "language": "en",
                 },
@@ -78,6 +78,14 @@ async def search_place(place_name: str, city: str) -> dict:
             price_map = {0: "free", 1: "$", 2: "$$", 3: "$$$", 4: "$$$$"}
             price_level = price_map.get(result.get("price_level"))
 
+            # 좌표 추출
+            lat = lng = None
+            geom = result.get("geometry") or {}
+            loc = geom.get("location") or {}
+            if loc.get("lat") is not None and loc.get("lng") is not None:
+                lat = float(loc["lat"])
+                lng = float(loc["lng"])
+
             place_info = {
                 "name": result.get("name"),
                 "address": result.get("formatted_address"),
@@ -91,6 +99,8 @@ async def search_place(place_name: str, city: str) -> dict:
                 "operating_hours": operating_hours,
                 "reservable": result.get("reservable"),
                 "business_status": result.get("business_status"),
+                "lat": lat,
+                "lng": lng,
             }
 
             logger.info("Places API 조회 성공: %s (%s)", place_name, city)

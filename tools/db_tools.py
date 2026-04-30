@@ -29,7 +29,7 @@ async def save_place_to_db(place_data: dict) -> dict:
         "reservation_status", "reservation_lead_time", "booking_method",
         "operating_hours", "last_order", "break_time", "restrictions",
         "payment_info", "parking_info", "rating", "review_count",
-        "price_level", "evidence_urls", "review_snippets",
+        "price_level", "lat", "lng", "evidence_urls", "review_snippets",
         "raw_gmaps_data", "raw_tripadvisor_data",
     }
     filtered = {k: v for k, v in place_data.items() if k in allowed_fields}

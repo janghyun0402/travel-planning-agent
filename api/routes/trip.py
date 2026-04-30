@@ -65,7 +65,7 @@ async def _run_pipeline(trip_id: str, trip_request: dict):
     """PipelineAgent를 백그라운드에서 실행한다."""
     try:
         async with async_session() as db:
-            await crud.update_trip_status(db, trip_id, "drafting")
+            await crud.update_trip_status(db, trip_id, "crawling")
 
         runner = Runner(
             agent=pipeline_agent,
@@ -93,10 +93,11 @@ async def _run_pipeline(trip_id: str, trip_request: dict):
             # 진행 상태 업데이트 (에이전트 이름 기반)
             if event.author:
                 status_map = {
-                    "DraftAgent": "drafting",
                     "CrawlerAgent": "crawling",
                     "MergerAgent": "merging",
+                    "ReserverAgent": "reserving",
                     "ItineraryAgent": "finalizing",
+                    "ResponseAgent": "responding",
                 }
                 new_status = status_map.get(event.author)
                 if new_status:
@@ -193,8 +194,23 @@ async def start_pipeline(
     trip_request = json.loads(request.message)
 
     # trip 정보 업데이트
+    from datetime import date as _date
     trip.city = trip_request.get("city", trip.city)
     trip.preferences = json.dumps(trip_request.get("preferences", {}), ensure_ascii=False)
+
+    start_str = trip_request.get("start_date")
+    end_str = trip_request.get("end_date")
+    if start_str:
+        try:
+            trip.start_date = _date.fromisoformat(start_str)
+        except (TypeError, ValueError):
+            logger.warning("Invalid start_date in trip_request: %r", start_str)
+    if end_str:
+        try:
+            trip.end_date = _date.fromisoformat(end_str)
+        except (TypeError, ValueError):
+            logger.warning("Invalid end_date in trip_request: %r", end_str)
+
     await db.commit()
 
     # 백그라운드에서 파이프라인 실행

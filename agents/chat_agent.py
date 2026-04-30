@@ -4,12 +4,19 @@ SequentialAgent에서 분리되어 독립적으로 동작.
 trip_request JSON이 확정되면 API 레이어에서 PipelineAgent를 트리거한다.
 """
 
+from datetime import date
+
 from google.adk.agents import LlmAgent
 
 from agents.schemas import TripRequest
 
-CHAT_AGENT_INSTRUCTION = """You are a friendly travel planning assistant. Your job is to have a natural conversation
+_TODAY = date.today().isoformat()
+
+CHAT_AGENT_INSTRUCTION = f"""You are a friendly travel planning assistant. Your job is to have a natural conversation
 with the user to understand their travel plans, and then recommend places to visit.
+
+**Today's date is {_TODAY}.** When the user mentions a date without a year (e.g. "May 10"), assume they mean
+the next upcoming occurrence of that date relative to today. Never assume a year that is in the past.
 
 ## Phase 1: Gather Information
 Collect the following through natural conversation:

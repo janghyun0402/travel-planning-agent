@@ -2,6 +2,7 @@ import json
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from db.models import Trip, Place, ItinerarySlot, Alternative
 
@@ -73,6 +74,7 @@ async def create_slot(session: AsyncSession, **kwargs) -> ItinerarySlot:
 async def get_slots_by_trip(session: AsyncSession, trip_id: str) -> list[ItinerarySlot]:
     result = await session.execute(
         select(ItinerarySlot)
+        .options(selectinload(ItinerarySlot.place))
         .where(ItinerarySlot.trip_id == trip_id)
         .order_by(ItinerarySlot.day_number, ItinerarySlot.slot_order)
     )

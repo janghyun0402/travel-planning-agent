@@ -8,6 +8,11 @@ API_BASE = "http://localhost:8000/api"
 st.set_page_config(page_title="Progress - Travel Planner", page_icon="⏳", layout="wide")
 st.title("⏳ 일정 생성 진행 상황")
 
+# Allow deep-linking via ?trip_id=... query param
+_qp_trip_id = st.query_params.get("trip_id")
+if _qp_trip_id:
+    st.session_state.trip_id = _qp_trip_id
+
 # Redirect if no trip
 if "trip_id" not in st.session_state or not st.session_state.trip_id:
     st.warning("먼저 채팅에서 여행 계획을 입력해주세요.")
@@ -16,14 +21,16 @@ if "trip_id" not in st.session_state or not st.session_state.trip_id:
 
 STAGE_LABELS = {
     "pending": ("⏸️", "대기 중"),
-    "drafting": ("📝", "초안 작성 중"),
     "crawling": ("🔍", "정보 수집 중"),
-    "merging": ("🔀", "데이터 병합 중"),
+    "merging": ("🔀", "데이터 교차검증 중"),
+    "reserving": ("🎫", "예약 정보 분석 중"),
+    "finalizing": ("📅", "일정 최적화 중"),
+    "responding": ("✍️", "답변 정리 중"),
     "done": ("✅", "완료"),
     "error": ("❌", "오류 발생"),
 }
 
-STAGE_ORDER = ["pending", "drafting", "crawling", "merging", "done"]
+STAGE_ORDER = ["pending", "crawling", "merging", "reserving", "finalizing", "responding", "done"]
 
 
 def fetch_trip_status(trip_id: str) -> dict | None:

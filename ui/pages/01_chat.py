@@ -99,11 +99,37 @@ if prompt := st.chat_input("여행 계획을 알려주세요! (예: 4월에 파�
                 result = send_chat_message(st.session_state.trip_id, prompt)
 
             if result:
-                reply = result["reply"]
-                st.markdown(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
+                trip_request = result.get("trip_request")
 
-                # Check if trip_request was extracted
-                if result.get("trip_request"):
-                    st.session_state.trip_request = result["trip_request"]
+                if trip_request:
+                    # 정보가 모두 추출된 경우 — JSON 대신 친근한 요약을 표시
+                    city = trip_request.get("city", "")
+                    start = trip_request.get("start_date", "")
+                    end = trip_request.get("end_date", "")
+                    place_names = [
+                        p.get("place_name") or p.get("name") or ""
+                        for p in trip_request.get("places", [])
+                    ]
+                    place_names = [n for n in place_names if n]
+
+                    summary_lines = [
+                        "좋아요! 여행 계획을 정리했어요. ✈️",
+                        "",
+                        f"- **목적지:** {city}",
+                        f"- **기간:** {start} ~ {end}",
+                    ]
+                    if place_names:
+                        summary_lines.append(f"- **추천 장소 ({len(place_names)}곳):** " + ", ".join(place_names))
+                    summary_lines.append("")
+                    summary_lines.append("왼쪽 사이드바에서 확인하시고, **🚀 일정 생성 시작** 버튼을 눌러주세요.")
+
+                    display_reply = "\n".join(summary_lines)
+                    st.markdown(display_reply)
+                    st.session_state.messages.append({"role": "assistant", "content": display_reply})
+                    st.session_state.trip_request = trip_request
                     st.rerun()
+                else:
+                    # 아직 정보 수집 중인 경우 — 모델 응답을 그대로 표시
+                    reply = result["reply"]
+                    st.markdown(reply)
+                    st.session_state.messages.append({"role": "assistant", "content": reply})

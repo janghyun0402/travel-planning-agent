@@ -53,6 +53,8 @@ class Place(Base):
     rating: Mapped[float | None] = mapped_column(Float)
     review_count: Mapped[int | None] = mapped_column(Integer)
     price_level: Mapped[str | None] = mapped_column(String)
+    lat: Mapped[float | None] = mapped_column(Float)
+    lng: Mapped[float | None] = mapped_column(Float)
     evidence_urls: Mapped[str | None] = mapped_column(Text)  # JSON array
     review_snippets: Mapped[str | None] = mapped_column(Text)  # JSON array
     raw_gmaps_data: Mapped[str | None] = mapped_column(Text)  # JSON

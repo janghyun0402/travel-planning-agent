@@ -135,6 +135,40 @@ async def _save_itinerary_callback(*, callback_context, **kwargs) -> None:
 
     itinerary["trip_id"] = trip_id
 
+    # LLM이 가짜 place_id를 생성하는 경우가 있어, 실제 DB의 place_id로 보정한다.
+    # place_name(영문/한글) 또는 LLM이 출력한 place_id가 DB 장소와 일치할 때만 매핑.
+    try:
+        from db.database import async_session as _async_session
+        from db.crud import get_places_by_trip
+        async with _async_session() as _s:
+            real_places = await get_places_by_trip(_s, trip_id)
+        name_to_id = {p.name.strip().lower(): p.id for p in real_places if p.name}
+        valid_ids = {p.id for p in real_places}
+
+        unmapped = []
+        for day in days:
+            for slot in day.get("slots", []):
+                pid = slot.get("place_id")
+                if pid in valid_ids:
+                    continue
+                pname = (slot.get("place_name") or "").strip().lower()
+                real_id = name_to_id.get(pname)
+                if not real_id:
+                    # 부분 일치 폴백 (예: "Eiffel" in "Eiffel Tower")
+                    for n, rid in name_to_id.items():
+                        if pname and (pname in n or n in pname):
+                            real_id = rid
+                            break
+                if real_id:
+                    slot["place_id"] = real_id
+                else:
+                    unmapped.append(slot.get("place_name"))
+                    slot["place_id"] = None
+        if unmapped:
+            logger.warning("place_id 매핑 실패: %s", unmapped)
+    except Exception:
+        logger.exception("place_id 보정 실패 (계속 진행)")
+
     try:
         result = await save_itinerary_to_db(itinerary)
         logger.info(

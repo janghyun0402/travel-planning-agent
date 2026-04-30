@@ -28,6 +28,7 @@ class TripResponse(BaseModel):
     status: str
     progress_total: int
     progress_done: int
+    final_response: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -66,10 +67,32 @@ class PlaceResponse(BaseModel):
     rating: float | None
     review_count: int | None
     price_level: str | None
+    lat: float | None = None
+    lng: float | None = None
     evidence_urls: list[str] | None = None
     review_snippets: list[str] | None = None
 
     model_config = {"from_attributes": True}
+
+    @field_validator(
+        "booking_method",
+        "operating_hours",
+        "restrictions",
+        "payment_info",
+        "evidence_urls",
+        "review_snippets",
+        mode="before",
+    )
+    @classmethod
+    def _parse_json_field(cls, v):
+        if isinstance(v, str):
+            if not v.strip():
+                return None
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, ValueError):
+                return None
+        return v
 
 
 class SlotResponse(BaseModel):

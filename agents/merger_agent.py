@@ -108,12 +108,45 @@ class MergerAgent(BaseAgent):
             logger.error("MergerAgent 결과가 리스트 아님: %s", type(validated))
             validated = []
 
+        # raw_crawl에서 lat/lng/google_maps_url 등 LLM이 누락한 정형 필드를 보강.
+        # CrawlerAgent는 Places API 응답을 entry에 직접 spread하므로 entry 자체를 사용.
+        raw_lookup: dict[str, dict] = {}
+        try:
+            raw_obj = json.loads(raw_data_str) if isinstance(raw_data_str, str) else raw_data_str
+            entries = raw_obj.get("places", []) if isinstance(raw_obj, dict) else (
+                raw_obj if isinstance(raw_obj, list) else []
+            )
+            for ent in entries:
+                if not isinstance(ent, dict):
+                    continue
+                # 검색에 쓸 수 있는 모든 이름 후보를 등록 (영문/한글 매칭 모두 위해)
+                for cand in (ent.get("name"), ent.get("place_name")):
+                    if cand:
+                        raw_lookup[cand.strip().lower()] = ent
+        except Exception:
+            logger.exception("raw_crawl_data lookup 구성 실패 (계속)")
+
         # DB 저장
         logger.info("DB 저장 시작: %d개 장소", len(validated))
         for place_data in validated:
             if not isinstance(place_data, dict):
                 continue
             place_data["trip_id"] = trip_id
+            # 좌표/지도 URL 보강
+            name_key = (place_data.get("name") or "").strip().lower()
+            gm = raw_lookup.get(name_key)
+            if not gm:
+                for k, v in raw_lookup.items():
+                    if name_key and (name_key in k or k in name_key):
+                        gm = v
+                        break
+            if gm:
+                if place_data.get("lat") is None and gm.get("lat") is not None:
+                    place_data["lat"] = gm["lat"]
+                if place_data.get("lng") is None and gm.get("lng") is not None:
+                    place_data["lng"] = gm["lng"]
+                if not place_data.get("google_maps_url") and gm.get("google_maps_url"):
+                    place_data["google_maps_url"] = gm["google_maps_url"]
             try:
                 result = await save_place_to_db(place_data)
                 logger.info("  저장 완료: %s (id: %s)", place_data.get("name"), result.get("id"))
